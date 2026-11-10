@@ -1,0 +1,17 @@
+# ==============================================================================
+# CALYX KUBERNETES MANIFEST: NAMESPACE
+# ==============================================================================
+# Concept Explanation for Beginners:
+# In Kubernetes, a "Namespace" is like a virtual cluster inside a physical cluster.
+# By isolating all CALYX microservices, databases, and secrets inside the 'calyx'
+# namespace, we ensure our resources don't collide with other applications running
+# on the same Kubernetes cluster.
+# ==============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: calyx
+  labels:
+    app.kubernetes.io/name: calyx
+    app.kubernetes.io/part-of: calyx-talent-platform

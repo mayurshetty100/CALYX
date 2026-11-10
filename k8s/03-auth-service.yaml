@@ -1,0 +1,93 @@
+# ==============================================================================
+# CALYX KUBERNETES MANIFEST: AUTH & IDENTITY MICROSERVICE
+# ==============================================================================
+# Concept Explanation for Beginners:
+# 1. Replicas: We start with 2 pod replicas so if one pod is restarting during
+#    an update, the other pod immediately serves incoming login traffic with ZERO downtime.
+# 2. Resource Requests & Limits:
+#    - requests: The guaranteed CPU/RAM Kubernetes allocates to each pod.
+#    - limits: The maximum boundary to prevent a pod from starving neighboring pods.
+# 3. Liveness and Readiness Probes:
+#    - readinessProbe: Pod only receives traffic when database connection succeeds.
+#    - livenessProbe: Kubernetes automatically reboots the container if it deadlocks.
+# ==============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calyx-auth-service
+  namespace: calyx
+  labels:
+    app: calyx-auth-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: calyx-auth-service
+  template:
+    metadata:
+      labels:
+        app: calyx-auth-service
+    spec:
+      containers:
+        - name: auth-service
+          image: calyx/auth-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8001
+          env:
+            - name: SERVICE_NAME
+              value: "calyx-auth-service"
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: calyx-common-config
+                  key: PORT_AUTH
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: calyx-secrets
+                  key: DATABASE_URL_AUTH
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: calyx-secrets
+                  key: JWT_SECRET_KEY
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calyx-auth-service
+  namespace: calyx
+  labels:
+    app: calyx-auth-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8001
+      targetPort: 8001
+      name: http
+  selector:
+    app: calyx-auth-service

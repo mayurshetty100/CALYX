@@ -1,0 +1,189 @@
+# ==============================================================================
+# CALYX MICROSERVICES ECOSYSTEM: DOCKER COMPOSE CONFIGURATION
+# ==============================================================================
+# Concept Explanation for Beginners:
+# Docker Compose lets you define and run multi-container Docker applications.
+# With a single command `docker compose up -d`, this file spins up:
+# 1. Four dedicated databases (PostgreSQL Auth, MongoDB, Redis, PostgreSQL Analytics)
+#    adhering strictly to the Database-per-Service pattern.
+# 2. All five microservices with health checks and network isolation.
+# 3. An NGINX API Gateway proxying external client traffic to port 8000.
+# ==============================================================================
+
+version: '3.8'
+
+networks:
+  calyx-network:
+    driver: bridge
+
+volumes:
+  auth-db-data:
+  job-db-data:
+  redis-data:
+  resume-vector-data:
+  analytics-db-data:
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. DEDICATED DATABASES (Database-per-Service Pattern)
+  # ----------------------------------------------------------------------------
+  calyx-auth-db:
+    image: postgres:16-alpine
+    container_name: calyx-auth-db
+    environment:
+      POSTGRES_DB: calyx_auth
+      POSTGRES_USER: calyx_user
+      POSTGRES_PASSWORD: calyx_secure_password_123
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    networks:
+      - calyx-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U calyx_user -d calyx_auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  calyx-job-db:
+    image: mongo:7.0
+    container_name: calyx-job-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - job-db-data:/data/db
+    networks:
+      - calyx-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  calyx-redis:
+    image: redis:7.2-alpine
+    container_name: calyx-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - calyx-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  calyx-analytics-db:
+    image: postgres:16-alpine
+    container_name: calyx-analytics-db
+    environment:
+      POSTGRES_DB: calyx_analytics
+      POSTGRES_USER: calyx_user
+      POSTGRES_PASSWORD: calyx_secure_password_123
+    ports:
+      - "5433:5432"
+    volumes:
+      - analytics-db-data:/var/lib/postgresql/data
+    networks:
+      - calyx-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U calyx_user -d calyx_analytics"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------------------------------------
+  # 2. CALYX MICROSERVICES
+  # ----------------------------------------------------------------------------
+  calyx-auth-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.auth
+    container_name: calyx-auth-service
+    environment:
+      SERVICE_NAME: calyx-auth-service
+      PORT: 8001
+      DATABASE_URL: postgresql://calyx_user:calyx_secure_password_123@calyx-auth-db:5432/calyx_auth
+      JWT_SECRET_KEY: calyx-super-secret-production-grade-encryption-key-change-in-prod-12345
+    ports:
+      - "8001:8001"
+    depends_on:
+      calyx-auth-db:
+        condition: service_healthy
+    networks:
+      - calyx-network
+
+  calyx-job-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.job
+    container_name: calyx-job-service
+    environment:
+      SERVICE_NAME: calyx-job-service
+      PORT: 8002
+      MONGODB_URL: mongodb://calyx-job-db:27017
+      MONGODB_DATABASE_NAME: calyx_jobs_db
+      JWT_SECRET_KEY: calyx-super-secret-production-grade-encryption-key-change-in-prod-12345
+    ports:
+      - "8002:8002"
+    depends_on:
+      calyx-job-db:
+        condition: service_healthy
+    networks:
+      - calyx-network
+
+  calyx-resume-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.resume
+    container_name: calyx-resume-service
+    environment:
+      SERVICE_NAME: calyx-resume-service
+      PORT: 8003
+      VECTOR_STORAGE_DIR: /app/calyx_vector_store
+      JWT_SECRET_KEY: calyx-super-secret-production-grade-encryption-key-change-in-prod-12345
+    ports:
+      - "8003:8003"
+    volumes:
+      - resume-vector-data:/app/calyx_vector_store
+    networks:
+      - calyx-network
+
+  calyx-agent-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agent
+    container_name: calyx-agent-service
+    environment:
+      SERVICE_NAME: calyx-agent-service
+      PORT: 8004
+      REDIS_URL: redis://calyx-redis:6379/0
+      JOB_SERVICE_URL: http://calyx-job-service:8002
+      JWT_SECRET_KEY: calyx-super-secret-production-grade-encryption-key-change-in-prod-12345
+    ports:
+      - "8004:8004"
+    depends_on:
+      calyx-redis:
+        condition: service_healthy
+    networks:
+      - calyx-network
+
+  calyx-analytics-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.analytics
+    container_name: calyx-analytics-service
+    environment:
+      SERVICE_NAME: calyx-analytics-service
+      PORT: 8005
+      ANALYTICS_DATABASE_URL: postgresql://calyx_user:calyx_secure_password_123@calyx-analytics-db:5432/calyx_analytics
+    ports:
+      - "8005:8005"
+    depends_on:
+      calyx-analytics-db:
+        condition: service_healthy
+    networks:
+      - calyx-network

@@ -30,32 +30,32 @@ This document maintains a living, step-by-step record of all completed, active, 
 - [x] **Step 3.4**: Liveness & Readiness health probe endpoints for Kubernetes (`/health/live`, `/health/ready`).
 - [x] **Step 3.5**: Unit and integration test suite passing with 100% success rate (6/6 tests passed).
 
-### Phase 4: Job Management Service (`services/calyx-job-service`)
-- [ ] **Step 4.1**: Service setup with asynchronous MongoDB integration (Motor/Beanie/Pydantic).
-- [ ] **Step 4.2**: Job requisition schema with scoring rubrics and applicant schema.
-- [ ] **Step 4.3**: Endpoints: Job posting, Job search, Application submission, Pipeline tracking.
-- [ ] **Step 4.4**: Health checks and automated test suite with terminal commands.
+### Phase 4: Job Management Service (`services/calyx_job_service`)
+- [x] **Step 4.1**: Service setup with MongoDB integration and graceful in-memory fallback.
+- [x] **Step 4.2**: Job requisition schema with scoring rubrics and applicant schema.
+- [x] **Step 4.3**: Endpoints: Job posting, Job search, Application submission, Pipeline tracking.
+- [x] **Step 4.4**: Health checks and automated test suite passing with 100% success rate (7/7 tests passed).
 
-### Phase 5: Resume Processing & Vector Engine (`services/calyx-resume-service`)
-- [ ] **Step 5.1**: Service setup with PDF/DOCX text extractors and entity chunkers.
-- [ ] **Step 5.2**: High-dimensional vector embedding generator and Vector DB integration (ChromaDB / Qdrant).
-- [ ] **Step 5.3**: Semantic search endpoint: Top-K candidate matching via cosine similarity.
-- [ ] **Step 5.4**: Health checks and test suite with terminal commands.
+### Phase 5: Resume Processing & Vector Engine (`services/calyx_resume_service`)
+- [x] **Step 5.1**: Service setup with PDF/DOCX/TXT text extractors and entity chunkers.
+- [x] **Step 5.2**: High-dimensional (384-dim) vector embedding generator and dedicated Vector Database.
+- [x] **Step 5.3**: Semantic search endpoint: Top-K candidate matching via cosine similarity and skill calibration.
+- [x] **Step 5.4**: Health checks and automated test suite passing with 100% success rate (7/7 tests passed).
 
-### Phase 6: Agentic AI Orchestration Mesh (`services/calyx-agent-service`)
-- [ ] **Step 6.1**: Service setup with Redis state store, distributed locks, and async queues.
-- [ ] **Step 6.2**: Agent 1: Extraction & Normalization Agent.
-- [ ] **Step 6.3**: Agent 2: Criteria & Rubric Matching Agent.
-- [ ] **Step 6.4**: Agent 3: Bias & Fairness Audit Agent.
-- [ ] **Step 6.5**: Agent 4: Dynamic Technical Interview Question Generator Agent.
-- [ ] **Step 6.6**: Orchestrator state machine coordinating multi-agent consensus.
-- [ ] **Step 6.7**: Health checks and test suite with terminal commands.
+### Phase 6: Agentic AI Orchestration Mesh (`services/calyx_agent_service`)
+- [x] **Step 6.1**: Service setup with Redis state store, distributed locks, and async queues.
+- [x] **Step 6.2**: Agent 1: Extraction & Normalization Agent (synonym resolution and specialty classification).
+- [x] **Step 6.3**: Agent 2: Criteria & Rubric Matching Agent (weighted multi-dimension rubric evaluation).
+- [x] **Step 6.4**: Agent 3: Bias & Fairness Audit Agent (demographic scrubbing and cryptographic audit certificates).
+- [x] **Step 6.5**: Agent 4: Dynamic Technical Interview Question Generator Agent (personalized questions + ideal answer keys).
+- [x] **Step 6.6**: Orchestrator state machine coordinating multi-agent consensus with transparent Redis trace logging.
+- [x] **Step 6.7**: Health checks and automated test suite passing with 100% success rate (4/4 tests passed).
 
-### Phase 7: Analytics & Reporting Service (`services/calyx-analytics-service`)
-- [ ] **Step 7.1**: Service setup with relational analytics database.
-- [ ] **Step 7.2**: Ingestion of hiring pipeline events and scoring distributions.
-- [ ] **Step 7.3**: Executive metrics dashboard endpoints.
-- [ ] **Step 7.4**: Health checks and test suite with terminal commands.
+### Phase 7: Analytics & Reporting Service (`services/calyx_analytics_service`)
+- [x] **Step 7.1**: Service setup with relational analytics database.
+- [x] **Step 7.2**: Ingestion of hiring pipeline events and scoring distributions.
+- [x] **Step 7.3**: Executive metrics dashboard endpoints and score histograms.
+- [x] **Step 7.4**: Health checks and automated test suite passing with 100% success rate (4/4 tests passed).
 
 ### Phase 8: Kubernetes Deployment & Autoscaling (HPA) Infrastructure (`k8s/`)
 - [ ] **Step 8.1**: Production multi-stage Dockerfiles for all 5 microservices.
@@ -77,3 +77,7 @@ This document maintains a living, step-by-step record of all completed, active, 
 * **2026-11-10 15:03**: Generated master `PROGRESS.md` tracker.
 * **2026-11-10 15:13**: Implemented `common/` shared libraries: config, security (native bcrypt + JWT), unified response envelopes, and structured logging.
 * **2026-11-10 15:22**: Implemented `services/calyx_auth_service` with PostgreSQL/SQLAlchemy, full RBAC, JWT rotation, K8s liveness & readiness probes, and verified 6/6 tests passing.
+* **2026-11-10 15:45**: Implemented `services/calyx_job_service` with MongoDB, compound unique indexes, job requisition rubrics, candidate application pipelines, atomic `$inc` counters, and verified 7/7 tests passing.
+* **2026-11-10 15:59**: Implemented `services/calyx_resume_service` with PDF/DOCX/TXT parsers, 384-dimensional dense semantic embeddings, dedicated Vector Database with disk persistence and Cosine Similarity KNN search, and verified 7/7 tests passing.
+* **2026-11-10 16:04**: Implemented `services/calyx_agent_service` with Redis state store, distributed locks, 4 autonomous agents (Extraction, Criteria, Bias Audit, Dynamic Interview Synthesizer), full XAI reasoning traces, and verified 4/4 tests passing.
+* **2026-11-10 16:11**: Implemented `services/calyx_analytics_service` with relational analytics database, pipeline event sourcing, conversion funnels, score histograms, and verified 4/4 tests passing.

@@ -1,0 +1,223 @@
+# ==============================================================================
+# CALYX KUBERNETES MANIFEST: DEDICATED DATABASES (Database-per-Service)
+# ==============================================================================
+# Concept Explanation for Beginners:
+# The assignment strictly mandates: "Connecting each and every service with a database".
+# Here, we deploy 4 dedicated databases inside our cluster:
+# 1. PostgreSQL (Auth & Identity)
+# 2. MongoDB (Jobs & Dynamic Rubrics)
+# 3. Redis (Agent Memory, Distributed Locks, Queues)
+# 4. PostgreSQL (Analytics & Pipeline Event Sourcing)
+# Each database is accessible via an internal Kubernetes ClusterIP Service.
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. AUTH DATABASE (PostgreSQL)
+# ------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calyx-auth-db
+  namespace: calyx
+  labels:
+    app: calyx-auth-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: calyx-auth-db
+  template:
+    metadata:
+      labels:
+        app: calyx-auth-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "calyx_auth"
+            - name: POSTGRES_USER
+              value: "calyx_user"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: calyx-secrets
+                  key: AUTH_DB_PASSWORD
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calyx-auth-db
+  namespace: calyx
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: calyx-auth-db
+
+---
+# ------------------------------------------------------------------------------
+# 2. JOB DATABASE (MongoDB)
+# ------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calyx-job-db
+  namespace: calyx
+  labels:
+    app: calyx-job-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: calyx-job-db
+  template:
+    metadata:
+      labels:
+        app: calyx-job-db
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:7.0
+          ports:
+            - containerPort: 27017
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calyx-job-db
+  namespace: calyx
+spec:
+  type: ClusterIP
+  ports:
+    - port: 27017
+      targetPort: 27017
+  selector:
+    app: calyx-job-db
+
+---
+# ------------------------------------------------------------------------------
+# 3. AGENT STATE STORE (Redis)
+# ------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calyx-redis
+  namespace: calyx
+  labels:
+    app: calyx-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: calyx-redis
+  template:
+    metadata:
+      labels:
+        app: calyx-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calyx-redis
+  namespace: calyx
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: 6379
+  selector:
+    app: calyx-redis
+
+---
+# ------------------------------------------------------------------------------
+# 4. ANALYTICS DATABASE (PostgreSQL)
+# ------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calyx-analytics-db
+  namespace: calyx
+  labels:
+    app: calyx-analytics-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: calyx-analytics-db
+  template:
+    metadata:
+      labels:
+        app: calyx-analytics-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "calyx_analytics"
+            - name: POSTGRES_USER
+              value: "calyx_user"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: calyx-secrets
+                  key: ANALYTICS_DB_PASSWORD
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calyx-analytics-db
+  namespace: calyx
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: calyx-analytics-db

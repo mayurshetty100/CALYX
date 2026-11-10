@@ -1,0 +1,87 @@
+# ==============================================================================
+# CALYX KUBERNETES MANIFEST: JOB & APPLICATION MICROSERVICE
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calyx-job-service
+  namespace: calyx
+  labels:
+    app: calyx-job-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: calyx-job-service
+  template:
+    metadata:
+      labels:
+        app: calyx-job-service
+    spec:
+      containers:
+        - name: job-service
+          image: calyx/job-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8002
+          env:
+            - name: SERVICE_NAME
+              value: "calyx-job-service"
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: calyx-common-config
+                  key: PORT_JOB
+            - name: MONGODB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: calyx-secrets
+                  key: MONGODB_URL
+            - name: MONGODB_DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: calyx-common-config
+                  key: MONGODB_DATABASE_NAME
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: calyx-secrets
+                  key: JWT_SECRET_KEY
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "400m"
+              memory: "384Mi"
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calyx-job-service
+  namespace: calyx
+  labels:
+    app: calyx-job-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8002
+      targetPort: 8002
+      name: http
+  selector:
+    app: calyx-job-service

@@ -1,0 +1,28 @@
+# ==============================================================================
+# CALYX ANALYTICS SERVICE: PRODUCTION MULTI-STAGE DOCKERFILE
+# ==============================================================================
+FROM python:3.12-slim AS builder
+
+WORKDIR /build
+COPY docker/requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+
+FROM python:3.12-slim AS runner
+
+WORKDIR /app
+RUN groupadd -r calyxgroup && useradd -r -g calyxgroup -u 10001 calyxuser
+
+COPY --from=builder /root/.local /home/calyxuser/.local
+ENV PATH=/home/calyxuser/.local/bin:$PATH
+ENV PYTHONPATH=/app
+
+COPY common /app/common
+COPY services/calyx_analytics_service /app/services/calyx_analytics_service
+
+RUN chown -R calyxuser:calyxgroup /app
+USER calyxuser
+
+EXPOSE 8005
+
+CMD ["uvicorn", "services.calyx_analytics_service.main:app", "--host", "0.0.0.0", "--port", "8005"]
