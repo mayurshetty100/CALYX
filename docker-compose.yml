@@ -10,8 +10,6 @@
 # 3. An NGINX API Gateway proxying external client traffic to port 8000.
 # ==============================================================================
 
-version: '3.8'
-
 networks:
   calyx-network:
     driver: bridge
