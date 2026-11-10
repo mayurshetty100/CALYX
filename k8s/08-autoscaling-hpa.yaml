@@ -1,0 +1,138 @@
+# ==============================================================================
+# CALYX KUBERNETES MANIFEST: HORIZONTAL POD AUTOSCALERS (HPA)
+# ==============================================================================
+# Concept Explanation for Beginners:
+# 1. Assignment Requirement: "It should autoscaling when heavy traffic enters."
+# 2. What is a Horizontal Pod Autoscaler (HPA)?
+#    Imagine 10,000 candidates submit applications within 10 minutes during a campus drive.
+#    A static system with 2 pods would become overwhelmed, experience request timeouts,
+#    and crash.
+#    The Horizontal Pod Autoscaler (HPA) is an automated Kubernetes robot that monitors
+#    real-time CPU utilization. When average CPU exceeds 70%, HPA automatically spins up
+#    new Pod replicas (scaling out). When traffic subsides, HPA safely winds down the
+#    extra pods (scaling in) after a stabilization window!
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. AGENT SERVICE HPA (Compute & AI Reasoning Scaling)
+# ------------------------------------------------------------------------------
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: calyx-agent-service-hpa
+  namespace: calyx
+  labels:
+    app: calyx-agent-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: calyx-agent-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0 # React instantly to sudden traffic spikes
+      policies:
+        - type: Percent
+          value: 100 # Double replica count every 15s under extreme load
+          periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300 # Wait 5 minutes before scaling down to prevent flapping
+
+---
+# ------------------------------------------------------------------------------
+# 2. RESUME SERVICE HPA (Document Parsing & Vector Embedding Scaling)
+# ------------------------------------------------------------------------------
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: calyx-resume-service-hpa
+  namespace: calyx
+  labels:
+    app: calyx-resume-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: calyx-resume-service
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# ------------------------------------------------------------------------------
+# 3. JOB SERVICE HPA (Job Search & Application Traffic Scaling)
+# ------------------------------------------------------------------------------
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: calyx-job-service-hpa
+  namespace: calyx
+  labels:
+    app: calyx-job-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: calyx-job-service
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# ------------------------------------------------------------------------------
+# 4. AUTH SERVICE HPA (User Login & Token Verification Scaling)
+# ------------------------------------------------------------------------------
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: calyx-auth-service-hpa
+  namespace: calyx
+  labels:
+    app: calyx-auth-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: calyx-auth-service
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80

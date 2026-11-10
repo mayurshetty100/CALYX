@@ -19,9 +19,11 @@ def client():
     """
     TestClient fixture that sets up fresh analytics database tables.
     """
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     with TestClient(app) as test_client:
         yield test_client
+    Base.metadata.drop_all(bind=engine)
 
 
 def test_01_health_probes(client):

@@ -1,0 +1,94 @@
+# ==============================================================================
+# CALYX KUBERNETES MANIFEST: AGENTIC AI ORCHESTRATION SERVICE
+# ==============================================================================
+# Concept Explanation for Beginners:
+# The Agentic AI Orchestrator executes 4 autonomous agents per candidate.
+# Because AI reasoning creates high CPU usage during batch evaluation,
+# this microservice has higher CPU limits and will autoscale up to 10 pods
+# under heavy load using the Horizontal Pod Autoscaler (HPA)!
+# ==============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calyx-agent-service
+  namespace: calyx
+  labels:
+    app: calyx-agent-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: calyx-agent-service
+  template:
+    metadata:
+      labels:
+        app: calyx-agent-service
+    spec:
+      containers:
+        - name: agent-service
+          image: calyx/agent-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8004
+          env:
+            - name: SERVICE_NAME
+              value: "calyx-agent-service"
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: calyx-common-config
+                  key: PORT_AGENT
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: calyx-secrets
+                  key: REDIS_URL
+            - name: JOB_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: calyx-common-config
+                  key: JOB_SERVICE_URL
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: calyx-secrets
+                  key: JWT_SECRET_KEY
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "800m"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8004
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8004
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calyx-agent-service
+  namespace: calyx
+  labels:
+    app: calyx-agent-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8004
+      targetPort: 8004
+      name: http
+  selector:
+    app: calyx-agent-service

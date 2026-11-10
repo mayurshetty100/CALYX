@@ -1,0 +1,84 @@
+# ==============================================================================
+# CALYX KUBERNETES MANIFEST: UNIFIED INGRESS GATEWAY
+# ==============================================================================
+# Concept Explanation for Beginners:
+# What is a Kubernetes Ingress?
+# Instead of exposing 5 different public IP addresses or opening 5 different ports
+# to the internet, an Ingress acts as the single "Front Door" (API Gateway) of your cluster.
+# It inspects the incoming URL path and routes it to the correct internal microservice:
+#   /api/v1/auth/*      --> calyx-auth-service (Port 8001)
+#   /api/v1/jobs/*      --> calyx-job-service (Port 8002)
+#   /api/v1/resumes/*   --> calyx-resume-service (Port 8003)
+#   /api/v1/agents/*    --> calyx-agent-service (Port 8004)
+#   /api/v1/analytics/* --> calyx-analytics-service (Port 8005)
+# ==============================================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: calyx-ingress-gateway
+  namespace: calyx
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/proxy-body-size: "20m" # Allow large resume uploads
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "180" # Extended timeout for AI agent reasoning
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, Accept"
+spec:
+  rules:
+    - http:
+        paths:
+          # 1. Auth & Identity Routes
+          - path: /api/v1/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: calyx-auth-service
+                port:
+                  number: 8001
+
+          # 2. Job Requisition Routes
+          - path: /api/v1/jobs
+            pathType: Prefix
+            backend:
+              service:
+                name: calyx-job-service
+                port:
+                  number: 8002
+
+          # 3. Application Submission Routes
+          - path: /api/v1/applications
+            pathType: Prefix
+            backend:
+              service:
+                name: calyx-job-service
+                port:
+                  number: 8002
+
+          # 4. Resume Parsing & Vector Search Routes
+          - path: /api/v1/resumes
+            pathType: Prefix
+            backend:
+              service:
+                name: calyx-resume-service
+                port:
+                  number: 8003
+
+          # 5. Agentic AI Orchestration Routes
+          - path: /api/v1/agents
+            pathType: Prefix
+            backend:
+              service:
+                name: calyx-agent-service
+                port:
+                  number: 8004
+
+          # 6. Analytics & Executive Reporting Routes
+          - path: /api/v1/analytics
+            pathType: Prefix
+            backend:
+              service:
+                name: calyx-analytics-service
+                port:
+                  number: 8005

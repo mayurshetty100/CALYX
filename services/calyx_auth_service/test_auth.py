@@ -18,11 +18,14 @@ from services.calyx_auth_service.database import Base, engine
 @pytest.fixture(scope="module")
 def client():
     """
-    Module-level test client fixture that manages the FastAPI lifespan context.
+    Module-level test client fixture that manages the FastAPI lifespan context
+    and ensures clean, isolated database tables.
     """
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     with TestClient(app) as test_client:
         yield test_client
+    Base.metadata.drop_all(bind=engine)
 
 
 def test_01_liveness_and_readiness_probes(client):

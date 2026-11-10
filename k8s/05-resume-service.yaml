@@ -1,0 +1,106 @@
+# ==============================================================================
+# CALYX KUBERNETES MANIFEST: RESUME & VECTOR ENGINE MICROSERVICE
+# ==============================================================================
+# Concept Explanation for Beginners:
+# The Resume Service handles compute-intensive operations: PDF/DOCX text extraction
+# and 384-dimensional vector embedding calculations.
+# We mount a PersistentVolumeClaim (PVC) at `/app/calyx_vector_store` so that
+# candidate embeddings persist across pod restarts!
+# ==============================================================================
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: calyx-resume-vector-pvc
+  namespace: calyx
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calyx-resume-service
+  namespace: calyx
+  labels:
+    app: calyx-resume-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: calyx-resume-service
+  template:
+    metadata:
+      labels:
+        app: calyx-resume-service
+    spec:
+      containers:
+        - name: resume-service
+          image: calyx/resume-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8003
+          env:
+            - name: SERVICE_NAME
+              value: "calyx-resume-service"
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: calyx-common-config
+                  key: PORT_RESUME
+            - name: VECTOR_STORAGE_DIR
+              value: "/app/calyx_vector_store"
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: calyx-secrets
+                  key: JWT_SECRET_KEY
+          volumeMounts:
+            - name: vector-storage
+              mountPath: /app/calyx_vector_store
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "256Mi"
+            limits:
+              cpu: "600m"
+              memory: "768Mi"
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8003
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8003
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+      volumes:
+        - name: vector-storage
+          persistentVolumeClaim:
+            claimName: calyx-resume-vector-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: calyx-resume-service
+  namespace: calyx
+  labels:
+    app: calyx-resume-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8003
+      targetPort: 8003
+      name: http
+  selector:
+    app: calyx-resume-service
