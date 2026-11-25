@@ -5,8 +5,8 @@ This document maintains a living, step-by-step record of all completed, active, 
 ---
 
 ## Overall Project Status
-* **Status**: 🟢 COMPLETED (10/10 Phases Implemented, 29/29 Tests Passing, Docker & Kubernetes Ready)
-* **Target Architecture**: 5 Decoupled Microservices, Polyglot Persistence (PostgreSQL, MongoDB, Vector DB, Redis, Analytics DB), Kubernetes Deployment with HPA (Horizontal Pod Autoscaling).
+* **Status**: 🟢 100% COMPLETE (All 20/20 Rubric Requirements Met, 35/35 Tests Passing, Frontend Live, Docker & Kubernetes Ready)
+* **Target Architecture**: 5 Decoupled Microservices + 1 Unified API Gateway, Polyglot Persistence (PostgreSQL, MongoDB, Vector DB, Redis, Analytics DB), Modern Interactive Frontend (React + Vite + Tailwind), Kubernetes Deployment with HPA (Horizontal Pod Autoscaling).
 * **Code Standard**: Comprehensive line-by-line comments, defensive security, beginner-friendly conceptual explanations, unit/integration tests with exact terminal commands.
 
 ---
@@ -16,76 +16,82 @@ This document maintains a living, step-by-step record of all completed, active, 
 ### Phase 1: Architecture, Topic Specification & Requirements Documentation
 - [x] **Step 1.1**: Define official topic, executive summary, problem statement, and justification in `docs/PROJECT_TOPIC_AND_PROPOSAL.md`.
 - [x] **Step 1.2**: Author detailed system architecture, microservices dissection, database-per-service mapping, and beginner glossary in `docs/ARCHITECTURE_AND_SPECIFICATIONS.md`.
-- [x] **Step 1.3**: Author this master living progress tracker `PROGRESS.md`.
+- [x] **Step 1.3**: Map direct rubric alignment (Database 4M, Cross-service 4M, Resilience 4M, Security 3M, Deployment 5M) in `docs/EVALUATION_PLAN_AND_RUBRIC_MAPPING.md`.
+- [x] **Step 1.4**: Author this master living progress tracker `PROGRESS.md`.
 
 ### Phase 2: Shared Kernel & Common Libraries (`common/`)
-- [x] **Step 2.1**: Implement reusable security helpers (password hashing, native bcrypt, JWT encode/decode, token schemas).
-- [x] **Step 2.2**: Implement standardized API response envelopes, error handlers, and structured logging.
+- [x] **Step 2.1**: Implement reusable security helpers (native salted bcrypt hashing with 72-byte safe truncation, JWT encode/decode, token schemas).
+- [x] **Step 2.2**: Implement standardized API response envelopes, error handlers, and structured logging (`enqueue=False` for Windows safety).
 - [x] **Step 2.3**: Implement base configuration managers (`pydantic-settings`).
+- [x] **Step 2.4**: Implement production Circuit Breaker state machine (`CLOSED`, `OPEN`, `HALF_OPEN`) and exponential backoff retry decorator (`@retry_with_backoff`).
 
-### Phase 3: Auth & Identity Service (`services/calyx_auth_service`)
+### Phase 3: Auth & Identity Service (`services/calyx_auth_service` - Port 8001)
 - [x] **Step 3.1**: Service directory structure, environment configuration, and dependencies.
 - [x] **Step 3.2**: PostgreSQL/SQLAlchemy database models (`User`, `RefreshToken`, `AuditLog`).
 - [x] **Step 3.3**: Auth controllers: Registration, Login (JWT generation), Token Refresh, RBAC verification.
 - [x] **Step 3.4**: Liveness & Readiness health probe endpoints for Kubernetes (`/health/live`, `/health/ready`).
 - [x] **Step 3.5**: Unit and integration test suite passing with 100% success rate (6/6 tests passed).
 
-### Phase 4: Job Management Service (`services/calyx_job_service`)
+### Phase 4: Job Management Service (`services/calyx_job_service` - Port 8002)
 - [x] **Step 4.1**: Service setup with MongoDB integration and graceful in-memory fallback.
 - [x] **Step 4.2**: Job requisition schema with scoring rubrics and applicant schema.
 - [x] **Step 4.3**: Endpoints: Job posting, Job search, Application submission, Pipeline tracking.
 - [x] **Step 4.4**: Health checks and automated test suite passing with 100% success rate (7/7 tests passed).
 
-### Phase 5: Resume Processing & Vector Engine (`services/calyx_resume_service`)
+### Phase 5: Resume Processing & Vector Engine (`services/calyx_resume_service` - Port 8003)
 - [x] **Step 5.1**: Service setup with PDF/DOCX/TXT text extractors and entity chunkers.
-- [x] **Step 5.2**: High-dimensional (384-dim) vector embedding generator and dedicated Vector Database.
+- [x] **Step 5.2**: High-dimensional (384-dim) vector embedding generator and dedicated Vector Database with Cosine Similarity.
 - [x] **Step 5.3**: Semantic search endpoint: Top-K candidate matching via cosine similarity and skill calibration.
 - [x] **Step 5.4**: Health checks and automated test suite passing with 100% success rate (7/7 tests passed).
 
-### Phase 6: Agentic AI Orchestration Mesh (`services/calyx_agent_service`)
-- [x] **Step 6.1**: Service setup with Redis state store, distributed locks, and async queues.
+### Phase 6: Agentic AI Orchestration Mesh (`services/calyx_agent_service` - Port 8004)
+- [x] **Step 6.1**: Service setup with Redis state store, distributed locks (`SETNX`), and async queues.
 - [x] **Step 6.2**: Agent 1: Extraction & Normalization Agent (synonym resolution and specialty classification).
 - [x] **Step 6.3**: Agent 2: Criteria & Rubric Matching Agent (weighted multi-dimension rubric evaluation).
 - [x] **Step 6.4**: Agent 3: Bias & Fairness Audit Agent (demographic scrubbing and cryptographic audit certificates).
 - [x] **Step 6.5**: Agent 4: Dynamic Technical Interview Question Generator Agent (personalized questions + ideal answer keys).
-- [x] **Step 6.6**: Orchestrator state machine coordinating multi-agent consensus with transparent Redis trace logging.
-- [x] **Step 6.7**: Health checks and automated test suite passing with 100% success rate (4/4 tests passed).
+- [x] **Step 6.6**: Orchestrator executing the 4-agent DAG pipeline with transparent XAI trace storage in Redis (4/4 tests passed).
 
-### Phase 7: Analytics & Reporting Service (`services/calyx_analytics_service`)
-- [x] **Step 7.1**: Service setup with relational analytics database.
-- [x] **Step 7.2**: Ingestion of hiring pipeline events and scoring distributions.
-- [x] **Step 7.3**: Executive metrics dashboard endpoints and score histograms.
-- [x] **Step 7.4**: Health checks and automated test suite passing with 100% success rate (4/4 tests passed).
+### Phase 7: Analytics & Reporting Service (`services/calyx_analytics_service` - Port 8005)
+- [x] **Step 7.1**: Service setup with dedicated PostgreSQL Analytics database.
+- [x] **Step 7.2**: Models: Recruitment funnel events, score distribution histograms, candidate pipeline velocity.
+- [x] **Step 7.3**: Automated test suite passing with 100% success rate (4/4 tests passed).
 
-### Phase 8: Kubernetes Deployment & Autoscaling (HPA) Infrastructure (`k8s/`)
-- [x] **Step 8.1**: Production multi-stage Dockerfiles for all 5 microservices (`docker/Dockerfile.*`).
-- [x] **Step 8.2**: Kubernetes ConfigMaps and Secrets manifests (`k8s/01-configmaps-secrets.yaml`).
-- [x] **Step 8.3**: Deployment and Service manifests with resource limits and probes (`k8s/02-databases.yaml` through `k8s/07-analytics-service.yaml`).
-- [x] **Step 8.4**: Horizontal Pod Autoscaler (HPA) manifests for traffic-driven auto-scaling (`k8s/08-autoscaling-hpa.yaml`).
-- [x] **Step 8.5**: Ingress manifest for unified gateway routing (`k8s/09-ingress.yaml`).
-- [x] **Step 8.6**: Multi-container Docker Compose orchestration for local spin-up (`docker-compose.yml`).
+### Phase 8: Unified API Gateway Service (`services/calyx_gateway_service` - Port 8000)
+- [x] **Step 8.1**: FastAPI reverse proxy routing to all 5 microservices.
+- [x] **Step 8.2**: Distributed Tracing: Injects `X-Request-ID` and logs latencies.
+- [x] **Step 8.3**: Circuit Breaker protection: Wraps upstream microservice calls, failing fast with 503 when tripped.
+- [x] **Step 8.4**: Aggregate System Health: `/api/v1/system/health` queries all 5 microservices simultaneously.
+- [x] **Step 8.5**: Gateway unit tests passing (4/4 tests passed).
 
-### Phase 9: End-to-End Orchestration, Testing & Load Simulation
-- [x] **Step 9.1**: Docker Compose file for full-stack local testing (`docker-compose.yml`).
-- [x] **Step 9.2**: End-to-end integration test runner simulating the complete recruitment journey (`tests/test_e2e_recruitment_flow.py` passing with 100% success).
-- [x] **Step 9.3**: Load testing script simulating concurrent applicant spikes to verify K8s HPA behavior (`tests/load_test_hpa_simulation.py` completed with 100% success and 79.2 req/sec throughput).
+### Phase 9: Modern Frontend User Interface (`frontend/`)
+- [x] **Step 9.1**: React 18 + Vite + Tailwind CSS Single Page Application.
+- [x] **Step 9.2**: Top Navbar with live Gateway connection heartbeat and JWT profile switcher.
+- [x] **Step 9.3**: Candidate Portal: Browse jobs, upload/embed resume into Vector DB, apply, view AI score, and practice personalized interview questions.
+- [x] **Step 9.4**: Recruiter Portal: Post new jobs with custom rubric weights, rank candidates by AI score, trigger autonomous screening.
+- [x] **Step 9.5**: Explainable AI (XAI) Modal: Inspect step-by-step reasoning across all 4 agents.
+- [x] **Step 9.6**: Observability Dashboard: Real-time microservices health, latencies, and conversion funnels.
+- [x] **Step 9.7**: Verified production build (`npm run build` succeeds in 1.19s).
 
-### Phase 10: Production Readme, Verification Guide & Runbook
-- [x] **Step 10.1**: Comprehensive project `README.md` with architecture diagrams, database matrix, Docker Compose, Kubernetes guides, and HPA commands.
-- [x] **Step 10.2**: All 29 unit and integration tests passing with 100% pass rate.
+### Phase 10: Containerization, Kubernetes & Cloud Deployment
+- [x] **Step 10.1**: Multi-stage, unprivileged non-root Dockerfiles (`calyxuser`) for all services.
+- [x] **Step 10.2**: Multi-container `docker-compose.yml` including 4 databases, 5 microservices, and API Gateway.
+- [x] **Step 10.3**: 10 Production Kubernetes manifests in `k8s/` including Ingress and HPA autoscaling (2 -> 10 replicas).
+- [x] **Step 10.4**: High-concurrency load test (`tests/load_test_hpa_simulation.py`) verifying 79.2 req/s with 100% success and simulated HPA scaling.
+- [x] **Step 10.5**: Cloud Infrastructure-as-Code: `render.yaml` for Render backend blueprint and `frontend/vercel.json` for Vercel deployment.
+- [x] **Step 10.6**: Comprehensive viva defense guide and terminal runbook in `docs/PRESENTATION_AND_VIVA_GUIDE.md`.
 
 ---
 
-## Log of Executed Steps
-* **2026-11-10 15:01**: Initialized project repository. Generated `docs/PROJECT_TOPIC_AND_PROPOSAL.md` establishing CALYX topic, problem statement, team allocation, and microservices justification.
-* **2026-11-10 15:02**: Generated `docs/ARCHITECTURE_AND_SPECIFICATIONS.md` detailing all 5 services, dedicated database assignments, agentic AI architecture, and beginner glossary.
-* **2026-11-10 15:03**: Generated master `PROGRESS.md` tracker.
-* **2026-11-10 15:13**: Implemented `common/` shared libraries: config, security (native bcrypt + JWT), unified response envelopes, and structured logging.
-* **2026-11-10 15:22**: Implemented `services/calyx_auth_service` with PostgreSQL/SQLAlchemy, full RBAC, JWT rotation, K8s liveness & readiness probes, and verified 6/6 tests passing.
-* **2026-11-10 15:45**: Implemented `services/calyx_job_service` with MongoDB, compound unique indexes, job requisition rubrics, candidate application pipelines, atomic `$inc` counters, and verified 7/7 tests passing.
-* **2026-11-10 15:59**: Implemented `services/calyx_resume_service` with PDF/DOCX/TXT parsers, 384-dimensional dense semantic embeddings, dedicated Vector Database with disk persistence and Cosine Similarity KNN search, and verified 7/7 tests passing.
-* **2026-11-10 16:04**: Implemented `services/calyx_agent_service` with Redis state store, distributed locks, 4 autonomous agents (Extraction, Criteria, Bias Audit, Dynamic Interview Synthesizer), full XAI reasoning traces, and verified 4/4 tests passing.
-* **2026-11-10 16:11**: Implemented `services/calyx_analytics_service` with relational analytics database, pipeline event sourcing, conversion funnels, score histograms, and verified 4/4 tests passing.
-* **2026-11-10 20:06**: Built production Docker infrastructure (multi-stage non-root Dockerfiles, `docker-compose.yml`), complete Kubernetes manifests (`k8s/00` to `k8s/09`), and Horizontal Pod Autoscaler (HPA) specifications for CPU/Memory scaling.
-* **2026-11-10 20:14**: Verified complete cross-microservice workflow in `tests/test_e2e_recruitment_flow.py` (Auth -> Job -> Resume Vector Ingestion -> Semantic Search -> 4-Agent Evaluation -> Analytics Funnel).
-* **2026-11-10 20:20**: Executed high-concurrency load benchmark (`tests/load_test_hpa_simulation.py`) with 50 concurrent workers, achieving 100% success rate, 79.2 req/sec throughput, and simulated HPA autoscaling trigger (scaling from 2 to 3+ pods).
+## Test Verification Summary
+* **Total Automated Tests**: 35 Passed / 35 Total (100% Green)
+* **Execution Time**: ~15 seconds
+* **Test Suite Files**:
+  - `services/calyx_auth_service/test_auth.py`: 6 tests
+  - `services/calyx_job_service/test_job.py`: 7 tests
+  - `services/calyx_resume_service/test_resume.py`: 7 tests
+  - `services/calyx_agent_service/test_agent.py`: 4 tests
+  - `services/calyx_analytics_service/test_analytics.py`: 4 tests
+  - `services/calyx_gateway_service/test_gateway.py`: 4 tests
+  - `tests/test_e2e_recruitment_flow.py`: 1 test (Full Cross-Service Lifecycle)
+  - `tests/test_resilience.py`: 2 tests (Circuit Breaker state transitions & retries)

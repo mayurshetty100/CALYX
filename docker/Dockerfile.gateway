@@ -1,0 +1,66 @@
+# ==============================================================================
+# CALYX API GATEWAY SERVICE - MULTI-STAGE SECURE DOCKERFILE
+# ==============================================================================
+# Concept Explanation:
+# Stage 1 (Builder): Installs minimal runtime dependencies into /root/.local.
+# Stage 2 (Runner): Copies only the installed packages into a slim, unprivileged
+# non-root container ('calyxuser'). This shrinks the image size and eliminates
+# build tools (like compilers and headers) from the final production container.
+# ==============================================================================
+
+# STAGE 1: Builder stage
+FROM python:3.12-slim AS builder
+
+# Prevent Python from writing .pyc files to disk and disable stdout buffering
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Set working directory inside the build container
+WORKDIR /app
+
+# Copy the lean requirements file specific to the Gateway service
+COPY docker/requirements.gateway.txt ./requirements.txt
+
+# Install dependencies into user directory with extended retries
+RUN pip install --no-cache-dir --user --default-timeout=1000 --retries=5 -r requirements.txt
+
+
+# STAGE 2: Lightweight Production Runtime Container
+FROM python:3.12-slim AS runner
+
+# Create a non-root system user and group named 'calyxuser' (UID 10001) for security
+RUN groupadd -g 10001 calyxgroup && \
+    useradd -u 10001 -g calyxgroup -s /bin/bash -m calyxuser
+
+# Set working directory inside the container
+WORKDIR /app
+
+# Copy installed Python packages from the builder stage into calyxuser's home
+COPY --from=builder /root/.local /home/calyxuser/.local
+
+# Copy common shared modules and the Gateway service source code
+COPY common ./common
+COPY services/calyx_gateway_service ./services/calyx_gateway_service
+
+# Ensure non-root user owns all application files
+RUN chown -R calyxuser:calyxgroup /app /home/calyxuser
+
+# Set environment variables for non-root execution
+ENV PATH=/home/calyxuser/.local/bin:$PATH \
+    PYTHONPATH=/app \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    GATEWAY_SERVICE_PORT=8000
+
+# Switch to the non-root unprivileged user
+USER calyxuser
+
+# Expose HTTP port 8000
+EXPOSE 8000
+
+# Health check probe using python one-liner (avoids installing curl in container)
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request; sys_exit(0 if urllib.request.urlopen('http://localhost:8000/health/live').getcode() == 200 else 1)"
+
+# Start the Gateway service with Uvicorn ASGI server
+CMD ["python", "-m", "uvicorn", "services.calyx_gateway_service.main:app", "--host", "0.0.0.0", "--port", "8000"]

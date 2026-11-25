@@ -1,0 +1,123 @@
+# ==============================================================================
+# CALYX RENDER BLUEPRINT (Infrastructure as Code)
+# ==============================================================================
+# File: render.yaml
+# Purpose:
+#   Automates the deployment of the Calyx Microservices ecosystem on Render.
+#   Deploys the Unified API Gateway (Public Web Service) and backend microservices
+#   (Private Services) connected via Render's internal secure private network.
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. CALYX UNIFIED API GATEWAY (Public Facing Entry Point)
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: calyx-gateway-service
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "pip install -r docker/requirements.gateway.txt"
+    startCommand: "python -m uvicorn services.calyx_gateway_service.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: SERVICE_NAME
+        value: calyx-gateway-service
+      - key: AUTH_SERVICE_URL
+        fromService:
+          type: pserv
+          name: calyx-auth-service
+          property: host
+      - key: JOB_SERVICE_URL
+        fromService:
+          type: pserv
+          name: calyx-job-service
+          property: host
+      - key: RESUME_SERVICE_URL
+        fromService:
+          type: pserv
+          name: calyx-resume-service
+          property: host
+      - key: AGENT_SERVICE_URL
+        fromService:
+          type: pserv
+          name: calyx-agent-service
+          property: host
+      - key: ANALYTICS_SERVICE_URL
+        fromService:
+          type: pserv
+          name: calyx-analytics-service
+          property: host
+      - key: ALLOWED_CORS_ORIGINS
+        value: "*"
+
+  # ----------------------------------------------------------------------------
+  # 2. CALYX AUTH SERVICE (Private Microservice)
+  # ----------------------------------------------------------------------------
+  - type: pserv
+    name: calyx-auth-service
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "pip install -r docker/requirements.auth.txt"
+    startCommand: "python -m uvicorn services.calyx_auth_service.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: SERVICE_NAME
+        value: calyx-auth-service
+      - key: JWT_SECRET_KEY
+        generateValue: true
+
+  # ----------------------------------------------------------------------------
+  # 3. CALYX JOB SERVICE (Private Microservice)
+  # ----------------------------------------------------------------------------
+  - type: pserv
+    name: calyx-job-service
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "pip install -r docker/requirements.job.txt"
+    startCommand: "python -m uvicorn services.calyx_job_service.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: SERVICE_NAME
+        value: calyx-job-service
+
+  # ----------------------------------------------------------------------------
+  # 4. CALYX RESUME SERVICE (Private Microservice)
+  # ----------------------------------------------------------------------------
+  - type: pserv
+    name: calyx-resume-service
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "pip install -r docker/requirements.resume.txt"
+    startCommand: "python -m uvicorn services.calyx_resume_service.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: SERVICE_NAME
+        value: calyx-resume-service
+
+  # ----------------------------------------------------------------------------
+  # 5. CALYX AGENT SERVICE (Private Microservice)
+  # ----------------------------------------------------------------------------
+  - type: pserv
+    name: calyx-agent-service
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "pip install -r docker/requirements.agent.txt"
+    startCommand: "python -m uvicorn services.calyx_agent_service.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: SERVICE_NAME
+        value: calyx-agent-service
+
+  # ----------------------------------------------------------------------------
+  # 6. CALYX ANALYTICS SERVICE (Private Microservice)
+  # ----------------------------------------------------------------------------
+  - type: pserv
+    name: calyx-analytics-service
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "pip install -r docker/requirements.analytics.txt"
+    startCommand: "python -m uvicorn services.calyx_analytics_service.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: SERVICE_NAME
+        value: calyx-analytics-service

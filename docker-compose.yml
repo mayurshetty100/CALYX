@@ -185,3 +185,31 @@ services:
         condition: service_healthy
     networks:
       - calyx-network
+
+  # ----------------------------------------------------------------------------
+  # 3. UNIFIED API GATEWAY SERVICE (Central Entry Point & Reverse Proxy)
+  # ----------------------------------------------------------------------------
+  calyx-gateway-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.gateway
+    container_name: calyx-gateway-service
+    environment:
+      SERVICE_NAME: calyx-gateway-service
+      PORT: 8000
+      AUTH_SERVICE_URL: http://calyx-auth-service:8001
+      JOB_SERVICE_URL: http://calyx-job-service:8002
+      RESUME_SERVICE_URL: http://calyx-resume-service:8003
+      AGENT_SERVICE_URL: http://calyx-agent-service:8004
+      ANALYTICS_SERVICE_URL: http://calyx-analytics-service:8005
+      ALLOWED_CORS_ORIGINS: "*"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - calyx-auth-service
+      - calyx-job-service
+      - calyx-resume-service
+      - calyx-agent-service
+      - calyx-analytics-service
+    networks:
+      - calyx-network
