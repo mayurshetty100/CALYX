@@ -366,79 +366,97 @@ async def proxy_request(
 # ROUTE DISPATCHERS TO INDIVIDUAL MICROSERVICES
 # ==============================================================================
 
-# Route 1: Calyx Auth Service (Port 8001)
-@app.api_route("/api/v1/auth/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Auth Proxy"])
-async def route_auth_service(path: str, request: Request):
-    """
-    Proxies all /api/v1/auth/* requests to the Calyx Auth Service on port 8001.
-    Handles user registration, login, token refresh, and user profile queries.
-    """
-    return await proxy_request(
-        target_base_url=gateway_settings.AUTH_SERVICE_URL,
-        path=f"/api/v1/auth/{path}",
-        request=request,
-        circuit_breaker=auth_breaker
-    )
+if gateway_settings.STANDALONE_GATEWAY_MODE:
+    logger.info("Running in STANDALONE_GATEWAY_MODE (Directly mounting all microservice routers)")
+    try:
+        from services.calyx_auth_service.main import app as auth_app
+        from services.calyx_job_service.main import app as job_app
+        from services.calyx_resume_service.main import app as resume_app
+        from services.calyx_agent_service.main import app as agent_app
+        from services.calyx_analytics_service.main import app as analytics_app
+
+        app.include_router(auth_app.router)
+        app.include_router(job_app.router)
+        app.include_router(resume_app.router)
+        app.include_router(agent_app.router)
+        app.include_router(analytics_app.router)
+        logger.info("All microservice routers mounted successfully into API Gateway!")
+    except Exception as mount_err:
+        logger.error(f"Failed to mount microservice routers in standalone mode: {str(mount_err)}")
+else:
+    # Route 1: Calyx Auth Service (Port 8001)
+    @app.api_route("/api/v1/auth/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Auth Proxy"])
+    async def route_auth_service(path: str, request: Request):
+        """
+        Proxies all /api/v1/auth/* requests to the Calyx Auth Service on port 8001.
+        Handles user registration, login, token refresh, and user profile queries.
+        """
+        return await proxy_request(
+            target_base_url=gateway_settings.AUTH_SERVICE_URL,
+            path=f"/api/v1/auth/{path}",
+            request=request,
+            circuit_breaker=auth_breaker
+        )
 
 
-# Route 2: Calyx Job Service (Port 8002)
-@app.api_route("/api/v1/jobs/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Job Proxy"])
-async def route_job_service(path: str, request: Request):
-    """
-    Proxies all /api/v1/jobs/* requests to the Calyx Job Service on port 8002.
-    Handles job creation, job search/filter, and candidate application submissions.
-    """
-    return await proxy_request(
-        target_base_url=gateway_settings.JOB_SERVICE_URL,
-        path=f"/api/v1/jobs/{path}",
-        request=request,
-        circuit_breaker=job_breaker
-    )
+    # Route 2: Calyx Job Service (Port 8002)
+    @app.api_route("/api/v1/jobs/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Job Proxy"])
+    async def route_job_service(path: str, request: Request):
+        """
+        Proxies all /api/v1/jobs/* requests to the Calyx Job Service on port 8002.
+        Handles job creation, job search/filter, and candidate application submissions.
+        """
+        return await proxy_request(
+            target_base_url=gateway_settings.JOB_SERVICE_URL,
+            path=f"/api/v1/jobs/{path}",
+            request=request,
+            circuit_breaker=job_breaker
+        )
 
 
-# Route 3: Calyx Resume Service (Port 8003)
-@app.api_route("/api/v1/resumes/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Resume Proxy"])
-async def route_resume_service(path: str, request: Request):
-    """
-    Proxies all /api/v1/resumes/* requests to the Calyx Resume Service on port 8003.
-    Handles resume uploads, PDF/text parsing, semantic vector embeddings, and search.
-    """
-    return await proxy_request(
-        target_base_url=gateway_settings.RESUME_SERVICE_URL,
-        path=f"/api/v1/resumes/{path}",
-        request=request,
-        circuit_breaker=resume_breaker
-    )
+    # Route 3: Calyx Resume Service (Port 8003)
+    @app.api_route("/api/v1/resumes/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Resume Proxy"])
+    async def route_resume_service(path: str, request: Request):
+        """
+        Proxies all /api/v1/resumes/* requests to the Calyx Resume Service on port 8003.
+        Handles resume uploads, PDF/text parsing, semantic vector embeddings, and search.
+        """
+        return await proxy_request(
+            target_base_url=gateway_settings.RESUME_SERVICE_URL,
+            path=f"/api/v1/resumes/{path}",
+            request=request,
+            circuit_breaker=resume_breaker
+        )
 
 
-# Route 4: Calyx Agent Service (Port 8004)
-@app.api_route("/api/v1/agent/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Agent Proxy"])
-async def route_agent_service(path: str, request: Request):
-    """
-    Proxies all /api/v1/agent/* requests to the Calyx Agent Service on port 8004.
-    Triggers multi-agent screening evaluations and retrieves transparent reasoning traces.
-    """
-    return await proxy_request(
-        target_base_url=gateway_settings.AGENT_SERVICE_URL,
-        path=f"/api/v1/agent/{path}",
-        request=request,
-        circuit_breaker=agent_breaker
-    )
+    # Route 4: Calyx Agent Service (Port 8004)
+    @app.api_route("/api/v1/agent/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Agent Proxy"])
+    async def route_agent_service(path: str, request: Request):
+        """
+        Proxies all /api/v1/agent/* requests to the Calyx Agent Service on port 8004.
+        Triggers multi-agent screening evaluations and retrieves transparent reasoning traces.
+        """
+        return await proxy_request(
+            target_base_url=gateway_settings.AGENT_SERVICE_URL,
+            path=f"/api/v1/agent/{path}",
+            request=request,
+            circuit_breaker=agent_breaker
+        )
 
 
-# Route 5: Calyx Analytics Service (Port 8005)
-@app.api_route("/api/v1/analytics/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Analytics Proxy"])
-async def route_analytics_service(path: str, request: Request):
-    """
-    Proxies all /api/v1/analytics/* requests to the Calyx Analytics Service on port 8005.
-    Provides conversion funnel data, score histograms, and recruitment metrics.
-    """
-    return await proxy_request(
-        target_base_url=gateway_settings.ANALYTICS_SERVICE_URL,
-        path=f"/api/v1/analytics/{path}",
-        request=request,
-        circuit_breaker=analytics_breaker
-    )
+    # Route 5: Calyx Analytics Service (Port 8005)
+    @app.api_route("/api/v1/analytics/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Analytics Proxy"])
+    async def route_analytics_service(path: str, request: Request):
+        """
+        Proxies all /api/v1/analytics/* requests to the Calyx Analytics Service on port 8005.
+        Provides conversion funnel data, score histograms, and recruitment metrics.
+        """
+        return await proxy_request(
+            target_base_url=gateway_settings.ANALYTICS_SERVICE_URL,
+            path=f"/api/v1/analytics/{path}",
+            request=request,
+            circuit_breaker=analytics_breaker
+        )
 
 
 # Root welcome route

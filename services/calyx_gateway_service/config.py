@@ -71,6 +71,9 @@ class GatewaySettings(BaseMicroserviceSettings):
         "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173,*"
     )
 
+    # Standalone mode: when true, routes directly in-process (ideal for Render single free tier)
+    STANDALONE_GATEWAY_MODE: bool = os.getenv("STANDALONE_GATEWAY_MODE", "false").lower() in ("true", "1", "yes")
+
     # Configuration dictionary specifying case-insensitivity and environment file loading
     model_config = SettingsConfigDict(
         # Read from .env file if present in the execution path
