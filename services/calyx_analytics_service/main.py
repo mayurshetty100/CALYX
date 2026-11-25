@@ -123,6 +123,7 @@ def record_event(
 
 
 @app.get("/api/v1/analytics/dashboard", response_model=StandardResponse, tags=["Executive Dashboard"])
+@app.get("/api/v1/analytics/overview", response_model=StandardResponse, tags=["Executive Dashboard"])
 def get_dashboard_overview(db: Session = Depends(get_analytics_db)):
     """
     Retrieves global executive recruitment metrics: total events, pipeline funnel counts,

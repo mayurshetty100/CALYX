@@ -32,6 +32,9 @@ import time
 # Import async HTTP client library httpx to make non-blocking calls to backend microservices
 import httpx
 
+# Import async context manager for FastAPI lifespan lifecycle
+from contextlib import asynccontextmanager
+
 # Import FastAPI framework classes for building API routes and handling HTTP requests/responses
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,6 +56,33 @@ from services.calyx_gateway_service.config import gateway_settings
 # Initialize structured logging for the API Gateway
 configure_logger(gateway_settings.SERVICE_NAME, gateway_settings.LOG_LEVEL)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    FastAPI Lifespan Context Manager.
+    Initializes database tables on application startup so user registration and
+    analytics recording work out-of-the-box in standalone and cloud deployments.
+    """
+    logger.info("Gateway lifespan startup: Initializing database tables...")
+    try:
+        from services.calyx_auth_service.database import Base as AuthBase, engine as auth_engine
+        AuthBase.metadata.create_all(bind=auth_engine)
+        logger.info("Auth database tables initialized successfully.")
+    except Exception as e:
+        logger.warning(f"Auth DB initialization warning: {e}")
+
+    try:
+        from services.calyx_analytics_service.database import Base as AnalyticsBase, engine as analytics_engine
+        AnalyticsBase.metadata.create_all(bind=analytics_engine)
+        logger.info("Analytics database tables initialized successfully.")
+    except Exception as e:
+        logger.warning(f"Analytics DB initialization warning: {e}")
+
+    yield
+    logger.info("Gateway lifespan teardown complete.")
+
+
 # Create the FastAPI application instance with rich metadata for Swagger documentation
 app = FastAPI(
     title="Calyx Unified API Gateway",
@@ -62,7 +92,8 @@ app = FastAPI(
     ),
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # Parse the comma-separated allowed origins string from settings into a list
@@ -366,97 +397,24 @@ async def proxy_request(
 # ROUTE DISPATCHERS TO INDIVIDUAL MICROSERVICES
 # ==============================================================================
 
-if gateway_settings.STANDALONE_GATEWAY_MODE:
-    logger.info("Running in STANDALONE_GATEWAY_MODE (Directly mounting all microservice routers)")
-    try:
-        from services.calyx_auth_service.main import app as auth_app
-        from services.calyx_job_service.main import app as job_app
-        from services.calyx_resume_service.main import app as resume_app
-        from services.calyx_agent_service.main import app as agent_app
-        from services.calyx_analytics_service.main import app as analytics_app
+# Mount all 5 microservice routers directly into the Gateway application.
+# This ensures that whether deployed in single-service cloud environments (Render, Railway),
+# local development, or containerized clusters, all routes are fully registered and visible in OpenAPI / Swagger docs.
+try:
+    from services.calyx_auth_service.main import app as auth_app
+    from services.calyx_job_service.main import app as job_app
+    from services.calyx_resume_service.main import app as resume_app
+    from services.calyx_agent_service.main import app as agent_app
+    from services.calyx_analytics_service.main import app as analytics_app
 
-        app.include_router(auth_app.router)
-        app.include_router(job_app.router)
-        app.include_router(resume_app.router)
-        app.include_router(agent_app.router)
-        app.include_router(analytics_app.router)
-        logger.info("All microservice routers mounted successfully into API Gateway!")
-    except Exception as mount_err:
-        logger.error(f"Failed to mount microservice routers in standalone mode: {str(mount_err)}")
-else:
-    # Route 1: Calyx Auth Service (Port 8001)
-    @app.api_route("/api/v1/auth/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Auth Proxy"])
-    async def route_auth_service(path: str, request: Request):
-        """
-        Proxies all /api/v1/auth/* requests to the Calyx Auth Service on port 8001.
-        Handles user registration, login, token refresh, and user profile queries.
-        """
-        return await proxy_request(
-            target_base_url=gateway_settings.AUTH_SERVICE_URL,
-            path=f"/api/v1/auth/{path}",
-            request=request,
-            circuit_breaker=auth_breaker
-        )
-
-
-    # Route 2: Calyx Job Service (Port 8002)
-    @app.api_route("/api/v1/jobs/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Job Proxy"])
-    async def route_job_service(path: str, request: Request):
-        """
-        Proxies all /api/v1/jobs/* requests to the Calyx Job Service on port 8002.
-        Handles job creation, job search/filter, and candidate application submissions.
-        """
-        return await proxy_request(
-            target_base_url=gateway_settings.JOB_SERVICE_URL,
-            path=f"/api/v1/jobs/{path}",
-            request=request,
-            circuit_breaker=job_breaker
-        )
-
-
-    # Route 3: Calyx Resume Service (Port 8003)
-    @app.api_route("/api/v1/resumes/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Resume Proxy"])
-    async def route_resume_service(path: str, request: Request):
-        """
-        Proxies all /api/v1/resumes/* requests to the Calyx Resume Service on port 8003.
-        Handles resume uploads, PDF/text parsing, semantic vector embeddings, and search.
-        """
-        return await proxy_request(
-            target_base_url=gateway_settings.RESUME_SERVICE_URL,
-            path=f"/api/v1/resumes/{path}",
-            request=request,
-            circuit_breaker=resume_breaker
-        )
-
-
-    # Route 4: Calyx Agent Service (Port 8004)
-    @app.api_route("/api/v1/agent/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Agent Proxy"])
-    async def route_agent_service(path: str, request: Request):
-        """
-        Proxies all /api/v1/agent/* requests to the Calyx Agent Service on port 8004.
-        Triggers multi-agent screening evaluations and retrieves transparent reasoning traces.
-        """
-        return await proxy_request(
-            target_base_url=gateway_settings.AGENT_SERVICE_URL,
-            path=f"/api/v1/agent/{path}",
-            request=request,
-            circuit_breaker=agent_breaker
-        )
-
-
-    # Route 5: Calyx Analytics Service (Port 8005)
-    @app.api_route("/api/v1/analytics/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], tags=["Analytics Proxy"])
-    async def route_analytics_service(path: str, request: Request):
-        """
-        Proxies all /api/v1/analytics/* requests to the Calyx Analytics Service on port 8005.
-        Provides conversion funnel data, score histograms, and recruitment metrics.
-        """
-        return await proxy_request(
-            target_base_url=gateway_settings.ANALYTICS_SERVICE_URL,
-            path=f"/api/v1/analytics/{path}",
-            request=request,
-            circuit_breaker=analytics_breaker
-        )
+    app.include_router(auth_app.router)
+    app.include_router(job_app.router)
+    app.include_router(resume_app.router)
+    app.include_router(agent_app.router)
+    app.include_router(analytics_app.router)
+    logger.info("All microservice routers mounted successfully into API Gateway!")
+except Exception as mount_err:
+    logger.error(f"Failed to mount microservice routers: {str(mount_err)}")
 
 
 # Root welcome route
