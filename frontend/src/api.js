@@ -16,8 +16,12 @@
  */
 
 // Base API URL pointing to the Calyx Unified API Gateway
-// In development, if VITE_API_URL is unset, default to the gateway port 8000
-export const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1';
+// In development, defaults to local port 8000; in production, automatically routes to live Render backend
+export const API_BASE =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD
+    ? 'https://calyx-backend-dpne.onrender.com/api/v1'
+    : 'http://127.0.0.1:8000/api/v1');
 
 /**
  * Retrieves the stored JWT access token from localStorage.
