@@ -426,9 +426,22 @@ def root_endpoint():
     return {
         "service": "Calyx Unified API Gateway",
         "status": "ONLINE",
-        "version": "1.0.0",
+        "version": "1.1.0",
+        "routes_registered": len(app.routes),
         "documentation": "/docs",
         "system_health": "/api/v1/system/health"
+    }
+
+
+@app.get("/api/v1/version", tags=["Root"])
+def version_endpoint():
+    """
+    Diagnostic version probe confirming active mounted routes.
+    """
+    return {
+        "version": "1.1.0",
+        "status": "ONLINE",
+        "routes_registered": len(app.routes)
     }
 
 
