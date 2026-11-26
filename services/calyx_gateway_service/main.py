@@ -66,9 +66,32 @@ async def lifespan(app: FastAPI):
     """
     logger.info("Gateway lifespan startup: Initializing database tables...")
     try:
-        from services.calyx_auth_service.database import Base as AuthBase, engine as auth_engine
+        from services.calyx_auth_service.database import Base as AuthBase, engine as auth_engine, SessionLocal
+        from services.calyx_auth_service.models import User
+        from common.security import hash_password
         AuthBase.metadata.create_all(bind=auth_engine)
         logger.info("Auth database tables initialized successfully.")
+
+        # Seed default demo accounts for viva/presentation
+        with SessionLocal() as db:
+            if not db.query(User).filter(User.email == "candidate@calyx.ai").first():
+                db.add(User(
+                    email="candidate@calyx.ai",
+                    password_hash=hash_password("password123"),
+                    full_name="Alex Morgan (Candidate)",
+                    role="candidate",
+                    is_active=True
+                ))
+            if not db.query(User).filter(User.email == "recruiter@calyx.ai").first():
+                db.add(User(
+                    email="recruiter@calyx.ai",
+                    password_hash=hash_password("password123"),
+                    full_name="Sarah Connor (Recruiter)",
+                    role="recruiter",
+                    is_active=True
+                ))
+            db.commit()
+            logger.info("Default Candidate and Recruiter accounts verified/seeded.")
     except Exception as e:
         logger.warning(f"Auth DB initialization warning: {e}")
 

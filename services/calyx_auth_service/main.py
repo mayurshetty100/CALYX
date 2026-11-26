@@ -56,6 +56,33 @@ async def lifespan(app: FastAPI):
     # Create tables if they do not exist
     Base.metadata.create_all(bind=engine)
     logger.info("Auth Service database tables verified/created successfully.")
+
+    # Seed demo candidate and recruiter accounts if not present
+    try:
+        from services.calyx_auth_service.database import SessionLocal
+        from services.calyx_auth_service.models import User
+        from common.security import hash_password
+
+        with SessionLocal() as db:
+            if not db.query(User).filter(User.email == "candidate@calyx.ai").first():
+                db.add(User(
+                    email="candidate@calyx.ai",
+                    password_hash=hash_password("password123"),
+                    full_name="Alex Morgan (Candidate)",
+                    role="candidate",
+                    is_active=True
+                ))
+            if not db.query(User).filter(User.email == "recruiter@calyx.ai").first():
+                db.add(User(
+                    email="recruiter@calyx.ai",
+                    password_hash=hash_password("password123"),
+                    full_name="Sarah Connor (Recruiter)",
+                    role="recruiter",
+                    is_active=True
+                ))
+            db.commit()
+    except Exception as e:
+        logger.warning(f"Demo account auto-seed notice: {e}")
     yield
     logger.info("Shutting down CALYX Auth Service...")
 
