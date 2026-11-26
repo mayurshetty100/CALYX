@@ -138,7 +138,7 @@ export const jobApi = {
   // List all open jobs with optional search filters
   getJobs: (params = {}) => {
     const query = new URLSearchParams(params).toString();
-    return request(`/jobs/?${query}`, { method: 'GET' });
+    return request(query ? `/jobs?${query}` : '/jobs', { method: 'GET' });
   },
 
   // Get single job details
@@ -146,7 +146,7 @@ export const jobApi = {
 
   // Create a new job requisition (Recruiter/Admin only)
   createJob: (jobData) =>
-    request('/jobs/', {
+    request('/jobs', {
       method: 'POST',
       body: JSON.stringify(jobData),
     }),

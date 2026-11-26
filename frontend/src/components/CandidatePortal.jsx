@@ -249,20 +249,26 @@ Designed high-throughput distributed systems handling 50k req/s. Built circuit b
                       </p>
                     </div>
                     <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300">
-                      {job.min_years_experience}+ Yrs Exp
+                      {job.min_years_exp || job.min_years_experience || 3}+ Yrs Exp
                     </span>
                   </div>
 
                   {/* Required Skills Badges */}
                   <div className="flex flex-wrap gap-1.5 mt-3">
-                    {(job.required_skills || []).map((sk, idx) => (
-                      <span
-                        key={idx}
-                        className="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20"
-                      >
-                        {sk}
-                      </span>
-                    ))}
+                    {(job.required_skills || []).map((sk, idx) => {
+                      const skillLabel =
+                        typeof sk === 'object' && sk !== null
+                          ? sk.name || sk.skill || JSON.stringify(sk)
+                          : String(sk);
+                      return (
+                        <span
+                          key={idx}
+                          className="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20"
+                        >
+                          {skillLabel}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               );

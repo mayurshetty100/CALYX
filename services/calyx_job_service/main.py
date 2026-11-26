@@ -183,6 +183,7 @@ def readiness_probe(db=Depends(get_job_database)):
 # JOB POSTING API ROUTES
 # ------------------------------------------------------------------------------
 @app.post("/api/v1/jobs", response_model=StandardResponse, status_code=status.HTTP_201_CREATED, tags=["Jobs"])
+@app.post("/api/v1/jobs/", response_model=StandardResponse, status_code=status.HTTP_201_CREATED, tags=["Jobs"])
 def create_job_posting(
     req: JobPostingCreate,
     user: dict = Depends(require_recruiter),
@@ -200,6 +201,7 @@ def create_job_posting(
 
 
 @app.get("/api/v1/jobs", response_model=StandardResponse, tags=["Jobs"])
+@app.get("/api/v1/jobs/", response_model=StandardResponse, tags=["Jobs"])
 def list_and_search_jobs(
     keyword: Optional[str] = Query(None, description="Search term for title or description"),
     department: Optional[str] = Query(None, description="Filter by department"),
