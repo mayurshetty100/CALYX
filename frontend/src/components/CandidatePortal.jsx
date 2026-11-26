@@ -38,30 +38,48 @@ Designed high-throughput distributed systems handling 50k req/s. Built circuit b
   const fallbackJobs = [
     {
       id: 'job-cloud-001',
-      title: 'Senior Cloud & Microservices Architect',
+      title: 'Lead Cloud Infrastructure & Kubernetes Architect',
       department: 'Platform Engineering',
       location: 'Remote / Hybrid',
-      required_skills: ['Python', 'FastAPI', 'Docker', 'Kubernetes', 'PostgreSQL', 'Microservices'],
-      min_years_experience: 5,
+      required_skills: ['Kubernetes', 'Python', 'Docker', 'Microservices'],
+      min_years_exp: 6,
       rubric_weights: { technical: 0.5, experience: 0.3, education: 0.2 },
     },
     {
       id: 'job-ai-002',
-      title: 'Autonomous AI & LLM Systems Engineer',
-      department: 'Applied AI',
-      location: 'Bengaluru / San Francisco',
-      required_skills: ['Python', 'PyTorch', 'Vector DB', 'Redis', 'Multi-Agent Systems', 'FastAPI'],
-      min_years_experience: 4,
-      rubric_weights: { technical: 0.6, experience: 0.25, education: 0.15 },
+      title: 'Autonomous AI & Multi-Agent Systems Engineer',
+      department: 'Applied AI & Research',
+      location: 'Bengaluru / Hybrid',
+      required_skills: ['Python', 'Vector DB', 'Redis', 'FastAPI'],
+      min_years_exp: 4,
+      rubric_weights: { technical: 0.55, experience: 0.25, education: 0.2 },
     },
     {
       id: 'job-fullstack-003',
       title: 'Staff Full-Stack & Microservices Engineer',
-      department: 'Core Product',
-      location: 'New York / London',
-      required_skills: ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Docker', 'Kubernetes'],
-      min_years_experience: 6,
+      department: 'Core Product Engineering',
+      location: 'San Francisco / Remote',
+      required_skills: ['React', 'TypeScript', 'FastAPI', 'PostgreSQL'],
+      min_years_exp: 5,
       rubric_weights: { technical: 0.45, experience: 0.35, education: 0.2 },
+    },
+    {
+      id: 'job-sre-004',
+      title: 'Site Reliability & Distributed Systems Engineer',
+      department: 'Infrastructure & Reliability',
+      location: 'London / Hybrid',
+      required_skills: ['Linux', 'Kubernetes', 'Python', 'Prometheus'],
+      min_years_exp: 3,
+      rubric_weights: { technical: 0.5, experience: 0.3, education: 0.2 },
+    },
+    {
+      id: 'job-data-005',
+      title: 'High-Throughput Data Platform Engineer',
+      department: 'Data Platform',
+      location: 'Remote',
+      required_skills: ['PostgreSQL', 'MongoDB', 'Redis', 'Kafka'],
+      min_years_exp: 5,
+      rubric_weights: { technical: 0.5, experience: 0.3, education: 0.2 },
     },
   ];
 
@@ -75,8 +93,16 @@ Designed high-throughput distributed systems handling 50k req/s. Built circuit b
     try {
       const res = await jobApi.getJobs();
       if (res?.data?.jobs && res.data.jobs.length > 0) {
-        setJobs(res.data.jobs);
-        setSelectedJob(res.data.jobs[0]);
+        // Deduplicate jobs by title so identical test postings don't repeat
+        const uniqueMap = new Map();
+        res.data.jobs.forEach((j) => {
+          if (!uniqueMap.has(j.title)) {
+            uniqueMap.set(j.title, j);
+          }
+        });
+        const distinctJobs = Array.from(uniqueMap.values());
+        setJobs(distinctJobs);
+        setSelectedJob(distinctJobs[0]);
       } else {
         setJobs(fallbackJobs);
         setSelectedJob(fallbackJobs[0]);

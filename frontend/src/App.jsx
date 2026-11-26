@@ -55,6 +55,11 @@ export default function App() {
 
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
+    if (user?.role === 'recruiter') {
+      setActiveTab('recruiter');
+    } else {
+      setActiveTab('candidate');
+    }
   };
 
   const handleLogout = () => {
@@ -79,23 +84,101 @@ export default function App() {
         gatewayOnline={gatewayOnline}
       />
 
-      {/* Main Body */}
+      {/* Main Body with Strict Role-Based Access Control (RBAC) */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* TAB 1: CANDIDATE PORTAL */}
         {activeTab === 'candidate' && (
-          <CandidatePortal
-            currentUser={currentUser}
-            onOpenAuth={() => setAuthModalOpen(true)}
-          />
+          currentUser?.role === 'recruiter' ? (
+            <div className="max-w-xl mx-auto my-12 p-8 bg-slate-900 border border-slate-800 rounded-3xl text-center space-y-4 shadow-2xl">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mx-auto flex items-center justify-center font-bold text-2xl">
+                👤
+              </div>
+              <h2 className="text-xl font-bold text-white tracking-tight">Recruiter Account Active</h2>
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                You are currently signed in as a <span className="text-indigo-400 font-semibold">Recruiter</span> ({currentUser.email}).
+                The Candidate Portal is reserved for job applicants submitting resumes.
+              </p>
+              <div className="pt-2 flex justify-center space-x-3">
+                <button
+                  onClick={() => setActiveTab('recruiter')}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all"
+                >
+                  Go to Recruiter Portal
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-all"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          ) : (
+            <CandidatePortal
+              currentUser={currentUser}
+              onOpenAuth={() => setAuthModalOpen(true)}
+            />
+          )
         )}
 
+        {/* TAB 2: RECRUITER PORTAL */}
         {activeTab === 'recruiter' && (
-          <RecruiterPortal
-            currentUser={currentUser}
-            onOpenAuth={() => setAuthModalOpen(true)}
-            onOpenTrace={handleOpenTrace}
-          />
+          !currentUser ? (
+            <div className="max-w-xl mx-auto my-12 p-8 bg-slate-900 border border-slate-800 rounded-3xl text-center space-y-4 shadow-2xl">
+              <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 mx-auto flex items-center justify-center font-bold text-2xl">
+                🔒
+              </div>
+              <h2 className="text-xl font-bold text-white tracking-tight">Recruiter Authentication Required</h2>
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                The Recruiter Control Center requires authenticated recruiter credentials to post job openings, configure rubric weights, and inspect candidate rankings.
+              </p>
+              <div className="pt-2 flex justify-center space-x-3">
+                <button
+                  onClick={() => setAuthModalOpen(true)}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all"
+                >
+                  Sign In as Recruiter
+                </button>
+              </div>
+            </div>
+          ) : currentUser.role === 'candidate' ? (
+            <div className="max-w-xl mx-auto my-12 p-8 bg-slate-900 border border-rose-500/30 rounded-3xl text-center space-y-4 shadow-2xl">
+              <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 mx-auto flex items-center justify-center font-bold text-2xl">
+                ⛔
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                HTTP 403 Forbidden
+              </span>
+              <h2 className="text-xl font-bold text-white tracking-tight">Access Restricted to Recruiters</h2>
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                Your account ({currentUser.email}) has the role <span className="text-indigo-400 font-semibold uppercase">Candidate</span>.
+                Candidates are strictly forbidden from viewing recruiter pipelines and applicant evaluations.
+              </p>
+              <div className="pt-2 flex justify-center space-x-3">
+                <button
+                  onClick={() => setActiveTab('candidate')}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all"
+                >
+                  Back to Candidate Portal
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-all"
+                >
+                  Switch Account
+                </button>
+              </div>
+            </div>
+          ) : (
+            <RecruiterPortal
+              currentUser={currentUser}
+              onOpenAuth={() => setAuthModalOpen(true)}
+              onOpenTrace={handleOpenTrace}
+            />
+          )
         )}
 
+        {/* TAB 3: OBSERVABILITY & METRICS */}
         {activeTab === 'analytics' && <AnalyticsDashboard />}
       </main>
 

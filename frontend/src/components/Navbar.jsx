@@ -39,28 +39,38 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Center: Navigation Tabs */}
+        {/* Center: Navigation Tabs with Role-Based Access Control */}
         <nav className="flex items-center space-x-1 sm:space-x-2 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
           <button
             onClick={() => setActiveTab('candidate')}
-            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center space-x-1.5 ${
               activeTab === 'candidate'
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                : currentUser?.role === 'recruiter'
+                ? 'text-slate-500 hover:text-slate-300'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
-            Candidate Portal
+            <span>Candidate Portal</span>
+            {currentUser?.role === 'recruiter' && (
+              <span className="text-[10px] bg-slate-800 px-1.5 py-0.2 rounded text-slate-400">Locked</span>
+            )}
           </button>
 
           <button
             onClick={() => setActiveTab('recruiter')}
-            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center space-x-1.5 ${
               activeTab === 'recruiter'
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                : currentUser?.role === 'candidate'
+                ? 'text-slate-500 hover:text-slate-300'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
-            Recruiter Portal
+            <span>Recruiter Portal</span>
+            {currentUser?.role === 'candidate' && (
+              <span className="text-[10px] bg-slate-800 px-1.5 py-0.2 rounded text-slate-400">Locked</span>
+            )}
           </button>
 
           <button
